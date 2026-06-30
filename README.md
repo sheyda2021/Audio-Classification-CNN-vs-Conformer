@@ -2,7 +2,7 @@
 
 # 🎙️ Audio Classification: CNN vs. Conformer
 
-### A comparative study of CNN and Conformer architectures for short audio intent classification
+### Comparing CNN and Conformer architectures for short-utterance audio intent classification
 
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-Keras-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
@@ -15,53 +15,38 @@
 
 ## 📌 Overview
 
-This repository presents a comparative study of two deep learning architectures — **CNN** and **Conformer** — applied to short speech segment classification into two intent categories: **`identity`** and **`request`**.
+This project compares two deep learning architectures — a **CNN baseline** and a **Conformer** (convolution + self-attention) — on a binary intent classification task: distinguishing **`identity`** utterances from **`request`** utterances in short (~1 second) speech clips.
 
-> Audio classification models often behave differently depending on dataset size and noise conditions. While transformer-based models such as Conformer excel in large-scale speech recognition, they don't always outperform simpler architectures when training data is limited.
-
-This project investigates that exact scenario through a controlled experiment using **Mel-spectrogram features**, comparing the two architectures across:
-
-- 🎯 **Accuracy** — raw classification performance
-- 🛡️ **Robustness** — behavior under noisy conditions
-- 📊 **Data efficiency** — performance on small datasets
-- 🏗️ **Architectural suitability** — fit for small-scale audio tasks
+The core question driving this work: *do attention-based architectures like Conformer, which dominate large-scale speech recognition, still hold an edge when training data is limited?* To find out, both models were trained on identical Mel-spectrogram inputs and evaluated under matched conditions — 5-fold stratified cross-validation, identical preprocessing, and a shared synthetic data augmentation pipeline (time-stretch, pitch-shift, noise injection, and gain/shift perturbations).
 
 ---
 
 ## 🗂️ Dataset
-
-The dataset consists of short (~1 second) audio recordings labeled into two classes:
 
 | Label | Description |
 |---|---|
 | `identity` | Speaker identification utterances |
 | `request` | Request-type utterances |
 
-Each sample is converted into a **Mel-spectrogram** representation before being fed into the models.
+Each recording is ~1 second long. To compensate for a small base dataset, every original sample was expanded via audio augmentation (15 augmented variants per file: time-stretching, pitch-shifting, noise, gain, and time-shift), and all audio was converted to **64×64 Mel-spectrograms** before being fed into either model.
 
 ---
 
 ## 🔊 Audio Processing Pipeline
 
-### 1️⃣ Waveform Normalization
-
-The raw waveform is normalized to stabilize amplitude variations across samples.
+**1. Waveform Normalization** — raw audio is normalized to stabilize amplitude across samples.
 
 <p align="center">
   <img src="Fig1_Normalized_Waveform.png" width="800">
 </p>
 
-### 2️⃣ Spectrogram Feature Extraction
-
-The audio signal is converted from the time domain to the frequency domain using Mel-Spectrograms.
+**2. Spectrogram Feature Extraction** — signals are converted from time domain to frequency domain.
 
 <p align="center">
   <img src="Fig2_Waveform_Spectrogram.png" width="900">
 </p>
 
-### 3️⃣ Class Spectrogram Comparison
-
-A visual comparison of spectrogram patterns between the two classes — these patterns help explain why convolutional filters capture discriminative features effectively.
+**3. Class Spectrogram Comparison** — Mel-spectrogram patterns for each class, which give a sense of why a convolutional model can pick up discriminative local structure directly from the spectrogram image.
 
 <p align="center">
   <img src="Fig4_MelSpec_Comparison.png" width="850">
@@ -72,55 +57,45 @@ A visual comparison of spectrogram patterns between the two classes — these pa
 ## 🧠 Model Architectures
 
 ### 🔹 CNN Baseline
-
-A convolutional neural network processing Mel-spectrogram images to learn local spectral patterns associated with each class.
-
-**Advantages:**
-- ⚡ Efficient training
-- 🎯 Strong local feature extraction
-- 📉 Good performance with smaller datasets
+A compact convolutional stack (3 conv blocks with batch norm and pooling, global average pooling, dense head) operating directly on Mel-spectrogram images.
 
 ### 🔹 Conformer
+A custom Conformer block implementation — feed-forward + multi-head self-attention + gated depthwise convolution + feed-forward, following the standard Conformer macro-structure — stacked on top of a small convolutional front-end and reshaped into a sequence for the attention layers.
 
-Combines convolutional layers (local feature extraction) with self-attention layers (global context modeling). Conformers are widely used in large-scale speech recognition, but their effectiveness depends heavily on dataset size.
+Both models were trained with identical hyperparameters (Adam optimizer, binary cross-entropy loss, 30 epochs, batch size 16) for a fair comparison.
 
 ---
 
-## 📈 Experimental Results
+## 📈 Results
 
-### K-Fold Accuracy
-
-Cross-validation results show the **CNN model consistently outperformed the Conformer** on this dataset, maintaining accuracy above **98%** across folds.
+### K-Fold Cross-Validation Accuracy
 
 <p align="center">
   <img src="Fig3_Classification_Results.png" width="700">
 </p>
 
-### Confusion Matrix Comparison
+The CNN performed strongly across folds, averaging well above 90% accuracy (with one fold dipping lower, likely due to a harder train/validation split). The Conformer, under this same data budget, stayed close to chance level — a clear signal that, **on this dataset size, the Conformer needed more data** to learn a useful representation through its attention layers, rather than there being any fundamental flaw in the architecture itself.
 
-The CNN achieved near-perfect classification, while the Conformer showed higher confusion between the two classes.
+### Confusion Matrices
 
 <p align="center">
   <img src="Fig6_CNN_Confusion_Matrix.png" width="45%">
   <img src="Fig6_Conformer_Confusion_Matrix.png" width="45%">
 </p>
 
-### 🔉 Noise Robustness (SNR Test)
+The CNN's confusion matrix shows strong separation between the two classes. The Conformer's matrix reinforces the cross-validation result: with limited data, it wasn't able to learn a confident decision boundary between `identity` and `request`.
 
-To simulate real-world environments, both models were tested under different Signal-to-Noise Ratio (SNR) conditions. Both models degrade under heavy noise, but the **CNN maintains stronger stability**.
+### Noise Robustness (SNR Sweep)
 
-<p align="center">
-  <img src="Fig5_Accuracy_vs_SNR.png" width="700">
-</p>
+Both models were also tested under several Signal-to-Noise Ratio conditions to gauge behavior in noisy environments. Results in this setting were inconclusive at the data scale used here, so this is flagged as a direction for future work with a larger dataset and more controlled noise-evaluation protocol, rather than a finding to draw conclusions from.
 
 ---
 
-## 💡 Technical Insights
+## 💡 Key Takeaways
 
-- ✅ CNNs can outperform attention-based models on small datasets
-- ✅ Local spectral patterns were sufficient to distinguish the two classes
-- ⚠️ Attention mechanisms require larger datasets to generalize effectively
-- ⚠️ Noise robustness remains a challenge for both models at low SNR levels
+- On a small, augmented dataset, a simple CNN was the more *data-efficient* choice for this binary intent task.
+- The Conformer's local-conv + self-attention design is built for scale — it likely needs a larger training set to reach its potential on this task.
+- This comparison highlights a practical, often-overlooked tradeoff in applied ML: architecture choice should match data budget, not just task complexity.
 
 ---
 
@@ -138,10 +113,10 @@ To simulate real-world environments, both models were tested under different Sig
 </div>
 
 - **Python** — core language
-- **TensorFlow / Keras** — model building and training
-- **Librosa** — audio processing and feature extraction
-- **NumPy** — numerical computation
-- **Scikit-learn** — evaluation metrics, cross-validation
+- **TensorFlow / Keras** — model building and training (custom Conformer block implementation)
+- **Librosa** — audio loading, augmentation, and Mel-spectrogram extraction
+- **NumPy / SciPy** — numerical computation, paired t-test for significance
+- **Scikit-learn** — stratified K-fold cross-validation, confusion matrices
 - **Matplotlib** — visualization
 
 ---
@@ -158,7 +133,7 @@ git clone https://github.com/sheyda2021/Audio-Classification-CNN-vs-Conformer.gi
 pip install -r requirements.txt
 ```
 
-**3. Run the training notebook or script** to reproduce the results.
+**3. Run the notebook** (`Persian_Keyword_Spotting.ipynb`) to reproduce preprocessing, training, and all figures.
 
 ---
 
