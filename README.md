@@ -119,23 +119,7 @@ Both models were also tested under several Signal-to-Noise Ratio conditions to g
 - **Scikit-learn** — stratified K-fold cross-validation, confusion matrices
 - **Matplotlib** — visualization
 
----
 
-## 🚀 Reproducibility
-
-**1. Clone the repository**
-```bash
-git clone https://github.com/sheyda2021/Audio-Classification-CNN-vs-Conformer.git
-```
-
-**2. Install dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-**3. Run the notebook** (`Persian_Keyword_Spotting.ipynb`) to reproduce preprocessing, training, and all figures.
-
----
 
 ## 👩‍💻 Author
 
