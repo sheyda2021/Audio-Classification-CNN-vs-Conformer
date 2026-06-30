@@ -5,7 +5,11 @@ This repository documents a comparative study on audio classification performanc
 The goal was to test how different architectural approaches (purely convolutional vs. hybrid attention-based) handle audio feature extraction and noisy environments.
 
 ---
-
+```markdown
+### 📝 Technical Insights
+- **Feature Engineering:** We used 128 Mel-bands for the spectrograms to ensure high-frequency resolution, crucial for distinguishing subtle voice intents.
+- **Why CNN won?** The CNN's local receptive fields were sufficient to capture the "intent-specific" patterns in short 1-second audio clips. The Conformer's self-attention mechanism likely suffered from high variance due to the limited number of training samples.
+- **SNR Testing:** The performance drop at lower SNR levels (0-5dB) indicates a need for more aggressive noise-reduction preprocessing in future iterations.
 ## 📋 Pipeline & Audio Preprocessing
 
 Before training, the audio files are processed and converted into visual representations (Mel-spectrograms).
